@@ -564,6 +564,7 @@ function ExamList() {
 
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [editingExam, setEditingExam] = useState(null);
+  const [publishingResults, setPublishingResults] = useState(null);
 
   // ================= LOAD EXAMS =================
   useEffect(() => {
@@ -655,6 +656,24 @@ function ExamList() {
     } catch (err) {
       console.log(err);
       alert("Publish failed");
+    }
+  };
+
+  // ================= PUBLISH RESULTS =================
+  const publishResults = async (id) => {
+    if (!window.confirm("Are you sure you want to publish the results for this exam? This will send emails to all students who submitted it.")) {
+      return;
+    }
+    
+    try {
+      setPublishingResults(id);
+      await API.post(`publish-results/${id}/`);
+      alert("Results published successfully via email!");
+    } catch (err) {
+      console.log(err);
+      alert("Publishing results failed");
+    } finally {
+      setPublishingResults(null);
     }
   };
 
@@ -780,6 +799,19 @@ function ExamList() {
                       onClick={() => viewQuestions(exam)}
                     >
                       View Questions
+                    </button>
+                    
+                    {/* ================= PUBLISH RESULTS ================= */}
+                    <button
+                      style={{
+                        ...styles.publishBtn,
+                        background: publishingResults === exam.id ? "#9ca3af" : "#0ea5e9",
+                        cursor: publishingResults === exam.id ? "not-allowed" : "pointer"
+                      }}
+                      disabled={publishingResults === exam.id}
+                      onClick={() => publishResults(exam.id)}
+                    >
+                      {publishingResults === exam.id ? "Sending Emails..." : "Publish Results"}
                     </button>
 
                     {/* ================= ACTIONS ================= */}

@@ -76,6 +76,8 @@ import Register from "./components/pages/Register";
 import VerifyOTP from "./components/pages/VerifyOTP";
 
 import Dashboard from "./components/dashboard/Dashboard";
+import ExamPage from "./components/dashboard/ExamPage";
+import TermsAndConditions from "./components/dashboard/TermsAndConditions";
 import ExamForm from "./components/admin-dashboard/ExamForm";
 import ManageExam from "./components/admin-dashboard/ManageExam";
 
@@ -134,6 +136,9 @@ function App() {
           element={<ManageExam />}
         />
       <Route path="/admin/create-exam" element={<ExamForm />} />
+
+      <Route path="/exam-terms/:id" element={<TermsAndConditions />} />
+      <Route path="/start-exam/:id" element={<ExamPage />} />
       
 
         {/* STUDENT ROUTE */}

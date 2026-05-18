@@ -10,6 +10,7 @@ urlpatterns = [
     path('api/', include('accounts.urls')),
 
     path('api/', include('dashboard.urls')),
+    path('api/', include('exam_attempt.urls')),
     
     
 ]

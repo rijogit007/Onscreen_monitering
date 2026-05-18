@@ -7,7 +7,10 @@ const API = axios.create({
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem("access"); // ✅ FIX
 
-  if (token) {
+  // Do not attach token for login or register routes
+  const isAuthRoute = config.url.includes("login") || config.url.includes("register");
+
+  if (token && !isAuthRoute) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
@@ -18,7 +21,7 @@ API.interceptors.request.use((config) => {
 API.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    if (err.response?.status === 401 && !err.config.url.includes("login")) {
       localStorage.removeItem("access");
       localStorage.removeItem("user");
       window.location.href = "/login";

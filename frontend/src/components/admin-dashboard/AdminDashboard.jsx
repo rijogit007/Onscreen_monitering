@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import API from "../../api/axios";
 import { useNavigate } from "react-router-dom";
 function AdminDashboard() {
-const navigate = useNavigate();
+  const navigate = useNavigate();
   // ======================
   // STATES
   // ======================
@@ -38,9 +38,21 @@ const navigate = useNavigate();
   const [sendingStudent, setSendingStudent] =
     useState("");
   // ======================
-// EXAM STATES
-// ======================
+  // EXAM STATES
+  // ======================
 
+  const [studentResults, setStudentResults] = useState([]);
+  const [viewingResultsStudent, setViewingResultsStudent] = useState(null);  // ======================
+
+  const [studentReports, setStudentReports] = useState([]);
+  const [viewingReportsStudent, setViewingReportsStudent] = useState(null);
+
+  // ======================
+  // LIVE MONITORING STATE
+  // ======================
+  const [isLiveMonitoringOn, setIsLiveMonitoringOn] = useState(false);
+  const [liveReports, setLiveReports] = useState([]);
+  const [showLivePanel, setShowLivePanel] = useState(false);
 
 
 
@@ -52,12 +64,43 @@ const navigate = useNavigate();
   // ======================
 
   useEffect(() => {
-
     fetchCourses();
-
     fetchStudents();
-
   }, []);
+
+  // ======================
+  // LIVE ALERTS POLLING
+  // ======================
+  useEffect(() => {
+    if (!isLiveMonitoringOn) {
+      setShowLivePanel(false);
+      return;
+    }
+    
+    setShowLivePanel(true);
+    
+    // Initial fetch
+    const fetchLive = async () => {
+      try {
+        const res = await API.get("recent-malpractice/");
+        if (res.data) setLiveReports(res.data);
+      } catch(err) {}
+    };
+    fetchLive();
+
+    const pollAlerts = setInterval(async () => {
+      try {
+        const res = await API.get("recent-malpractice/");
+        if (res.data) {
+          setLiveReports(res.data);
+        }
+      } catch (err) {
+        console.error("Alert polling failed", err);
+      }
+    }, 5000); // 5 seconds for smoother updates
+
+    return () => clearInterval(pollAlerts);
+  }, [isLiveMonitoringOn]);
 
   // ======================
   // FETCH COURSES
@@ -284,8 +327,8 @@ UUCMS No: ${student.uucms_no}
 
 Status:
 ${student.is_active
-  ? "Active"
-  : "Blocked"}
+        ? "Active"
+        : "Blocked"}
 `);
   };
 
@@ -337,6 +380,36 @@ ${student.is_active
       setSendingStudent("");
 
       alert("Email failed");
+    }
+  };
+
+  // ======================
+  // FETCH STUDENT RESULTS
+  // ======================
+
+  const fetchStudentResults = async (student) => {
+    try {
+      const res = await API.get(`student-results/${student.id}/`);
+      setStudentResults(res.data);
+      setViewingResultsStudent(student);
+    } catch (err) {
+      console.log(err);
+      alert("Failed to fetch results");
+    }
+  };
+
+  // ======================
+  // FETCH STUDENT REPORTS
+  // ======================
+
+  const fetchStudentReports = async (student) => {
+    try {
+      const res = await API.get(`student-reports/${student.id}/`);
+      setStudentReports(res.data);
+      setViewingReportsStudent(student);
+    } catch (err) {
+      console.log(err);
+      alert("Failed to fetch reports");
     }
   };
 
@@ -461,7 +534,7 @@ ${student.is_active
         >
           All Students
         </button>
-      
+
         {courses.map((course) => (
 
           <button
@@ -480,7 +553,7 @@ ${student.is_active
         ))}
 
       </div>
-        
+
       {/* MAIN */}
 
       <div style={styles.main}>
@@ -533,7 +606,7 @@ ${student.is_active
               )
             }
           />
-          
+
 
           <textarea
             style={styles.textarea}
@@ -587,13 +660,13 @@ ${student.is_active
 
                   background:
                     sendingCourse ===
-                    course.name
+                      course.name
                       ? "#16a34a"
                       : "#2563eb",
 
                   opacity:
                     sendingCourse ===
-                    course.name
+                      course.name
                       ? 0.7
                       : 1,
                 }}
@@ -604,7 +677,7 @@ ${student.is_active
                 }
               >
                 {sendingCourse ===
-                course.name
+                  course.name
                   ? "Sent ✓"
                   : `Send ${course.name}`}
               </button>
@@ -614,36 +687,95 @@ ${student.is_active
           </div>
 
         </div>
-            <div style={styles.card}>
-  <h3>Exam Management</h3>
+        <div style={styles.card}>
+          <h3>Exam Management</h3>
 
-   <button
-    style={styles.addBtn}
-    onClick={() => navigate("/admin/create-exam")}
-  >
-    + Create Exam
-  </button>
+          <button
+            style={styles.addBtn}
+            onClick={() => navigate("/admin/create-exam")}
+          >
+            + Create Exam
+          </button>
 
-   <button
-    style={styles.addBtn}
-    onClick={() => navigate("/admin/manage-exam")}
-  >
-    +Manage 
-  </button>
-  
-</div>
+          <button
+            style={styles.addBtn}
+            onClick={() => navigate("/admin/manage-exam")}
+          >
+            +Manage
+          </button>
+
+        </div>
 
 
-        {/* TITLE */}
+        {/* TITLE AND LIVE MONITORING TOGGLE */}
 
-        <h3 style={styles.title}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+          <h3 style={{ ...styles.title, marginBottom: 0 }}>
+            {selectedCourse
+              ? `Students in ${selectedCourse}`
+              : "All Students"}
+          </h3>
+          <button
+            onClick={() => setIsLiveMonitoringOn(!isLiveMonitoringOn)}
+            style={{
+              padding: "10px 16px",
+              border: "none",
+              borderRadius: "8px",
+              background: isLiveMonitoringOn ? "#ef4444" : "#10b981",
+              color: "white",
+              fontWeight: "600",
+              cursor: "pointer",
+              boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              transition: "0.3s"
+            }}
+          >
+            <span style={{
+              width: "10px",
+              height: "10px",
+              background: isLiveMonitoringOn ? "#fca5a5" : "#a7f3d0",
+              borderRadius: "50%",
+              boxShadow: isLiveMonitoringOn ? "0 0 8px #fca5a5" : "none",
+              animation: isLiveMonitoringOn ? "pulseGlow 2s infinite" : "none"
+            }}></span>
+            {isLiveMonitoringOn ? "Turn OFF Live Monitoring" : "Turn ON Live Monitoring"}
+          </button>
+        </div>
 
-          {selectedCourse
-            ? `${selectedCourse} Students`
-            : "All Students"}
+        {/* LIVE REPORTS PANEL */}
+        {showLivePanel && (
+          <div style={styles.livePanel}>
+            <div style={styles.livePanelHeader}>
+              <h3 style={{ margin: 0, color: "white", display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={styles.liveDot}></span> Live Reports feed
+              </h3>
+              <button onClick={() => setShowLivePanel(false)} style={styles.closeLiveBtn}>✕</button>
+            </div>
+            
+            <div style={styles.liveReportsContainer}>
+              {liveReports.length === 0 ? (
+                <p style={{ textAlign: "center", color: "#64748b", marginTop: "20px" }}>No recent malpractice reports.</p>
+              ) : (
+                liveReports.map(report => (
+                  <div key={report.id} style={styles.liveReportCard}>
+                    <div style={styles.liveReportInfo}>
+                      <p style={styles.liveReportTime}>{report.timestamp}</p>
+                      <h4 style={styles.liveReportName}>{report.student_name}</h4>
+                      <p style={styles.liveReportExam}>{report.exam_name}</p>
+                      <p style={styles.liveReportDesc}>⚠️ {report.description}</p>
+                    </div>
+                    {report.screenshot && (
+                      <img src={report.screenshot} alt="Screenshot" style={styles.liveReportImg} />
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
 
-        </h3>
-        
 
         {/* TABLE */}
 
@@ -794,6 +926,32 @@ ${student.is_active
                           View
                         </button>
 
+                        {/* VIEW RESULTS */}
+                        <button
+                          style={{
+                            ...styles.viewBtn,
+                            background: "#0ea5e9"
+                          }}
+                          onClick={() =>
+                            fetchStudentResults(
+                              student
+                            )
+                          }
+                        >
+                          Results
+                        </button>
+
+                        {/* REPORTS */}
+                        <button
+                          style={{
+                            ...styles.viewBtn,
+                            background: "#f59e0b"
+                          }}
+                          onClick={() => fetchStudentReports(student)}
+                        >
+                          Reports
+                        </button>
+
                         {/* EDIT */}
 
                         <button
@@ -838,13 +996,13 @@ ${student.is_active
 
                             background:
                               sendingStudent ===
-                              student.email
+                                student.email
                                 ? "#16a34a"
                                 : "#7c3aed",
 
                             opacity:
                               sendingStudent ===
-                              student.email
+                                student.email
                                 ? 0.7
                                 : 1,
                           }}
@@ -855,7 +1013,7 @@ ${student.is_active
                           }
                         >
                           {sendingStudent ===
-                          student.email
+                            student.email
                             ? "Sent ✓"
                             : "Email"}
                         </button>
@@ -1019,6 +1177,95 @@ ${student.is_active
 
           </div>
 
+        )}
+
+        {/* RESULTS MODAL */}
+        {viewingResultsStudent && (
+          <div style={styles.modalOverlay}>
+            <div style={{ ...styles.modal, maxWidth: "600px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <h3 style={{ margin: 0 }}>Results: {viewingResultsStudent.name}</h3>
+                <button
+                  onClick={() => setViewingResultsStudent(null)}
+                  style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer" }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {studentResults.length === 0 ? (
+                <p>No exams assigned to this student.</p>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "10px" }}>
+                  <thead>
+                    <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
+                      <th style={{ padding: "10px", borderBottom: "2px solid #cbd5e1" }}>Exam</th>
+                      <th style={{ padding: "10px", borderBottom: "2px solid #cbd5e1" }}>Status</th>
+                      <th style={{ padding: "10px", borderBottom: "2px solid #cbd5e1" }}>Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {studentResults.map((res, index) => (
+                      <tr key={index} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                        <td style={{ padding: "12px 10px" }}>{res.exam_name}</td>
+                        <td style={{ padding: "12px 10px" }}>
+                          <span style={{
+                            padding: "4px 8px",
+                            borderRadius: "4px",
+                            fontSize: "12px",
+                            fontWeight: "bold",
+                            background: res.status === "Submitted" ? "#dcfce7" : res.status === "In Progress" ? "#fef9c3" : "#fee2e2",
+                            color: res.status === "Submitted" ? "#166534" : res.status === "In Progress" ? "#854d0e" : "#991b1b"
+                          }}>
+                            {res.status}
+                          </span>
+                        </td>
+                        <td style={{ padding: "12px 10px", fontWeight: "bold" }}>
+                          {res.status === "Submitted" ? `${res.score} / ${res.total_marks}` : "-"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* REPORTS MODAL */}
+        {viewingReportsStudent && (
+          <div style={styles.modalOverlay}>
+            <div style={{ ...styles.modal, maxWidth: "700px", maxHeight: "80vh", overflowY: "auto" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <h3 style={{ margin: 0 }}>Proctoring Reports: {viewingReportsStudent.name}</h3>
+                <button
+                  onClick={() => setViewingReportsStudent(null)}
+                  style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer" }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {studentReports.length === 0 ? (
+                <p>No malpractice logs found for this student.</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+                  {studentReports.map((report, index) => (
+                    <div key={index} style={{ border: "1px solid #ef4444", borderRadius: "8px", padding: "15px", background: "#fef2f2" }}>
+                      <p style={{ margin: "0 0 10px 0", color: "#b91c1c" }}>
+                        <strong>Exam:</strong> {report.exam_name} <br />
+                        <strong>Time:</strong> {report.timestamp} <br />
+                        <strong>Violation:</strong> {report.description}
+                      </p>
+                      {report.screenshot && (
+                        <img src={report.screenshot} alt="Webcam Capture" style={{ width: "100%", maxHeight: "300px", objectFit: "contain", borderRadius: "4px", border: "1px solid #fca5a5" }} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
       </div>
@@ -1289,4 +1536,90 @@ const styles = {
     cursor: "pointer",
     fontWeight: "600",
   },
+
+  livePanel: {
+    background: "linear-gradient(180deg, #1e293b, #0f172a)",
+    borderRadius: "16px",
+    marginBottom: "25px",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+    overflow: "hidden",
+    border: "1px solid #334155",
+    animation: "fadeIn 0.4s ease-out",
+  },
+  livePanelHeader: {
+    background: "#0f172a",
+    padding: "15px 20px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottom: "1px solid #334155",
+  },
+  liveDot: {
+    width: "12px",
+    height: "12px",
+    background: "#ef4444",
+    borderRadius: "50%",
+    boxShadow: "0 0 10px #ef4444",
+    animation: "pulseGlow 2s infinite"
+  },
+  closeLiveBtn: {
+    background: "transparent",
+    border: "none",
+    color: "#94a3b8",
+    fontSize: "18px",
+    cursor: "pointer",
+    transition: "color 0.2s"
+  },
+  liveReportsContainer: {
+    padding: "20px",
+    maxHeight: "500px",
+    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: "15px"
+  },
+  liveReportCard: {
+    background: "#ffffff",
+    borderRadius: "12px",
+    padding: "15px",
+    display: "flex",
+    gap: "15px",
+    boxShadow: "0 4px 6px rgba(0,0,0,0.05)",
+    borderLeft: "4px solid #ef4444",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  liveReportInfo: {
+    flex: 1,
+  },
+  liveReportTime: {
+    fontSize: "12px",
+    color: "#64748b",
+    margin: "0 0 5px 0"
+  },
+  liveReportName: {
+    margin: "0 0 5px 0",
+    color: "#0f172a",
+    fontSize: "16px",
+    fontWeight: "bold"
+  },
+  liveReportExam: {
+    margin: "0 0 8px 0",
+    color: "#3b82f6",
+    fontSize: "13px",
+    fontWeight: "500"
+  },
+  liveReportDesc: {
+    margin: 0,
+    color: "#ef4444",
+    fontSize: "14px",
+    fontWeight: "600"
+  },
+  liveReportImg: {
+    width: "120px",
+    height: "90px",
+    borderRadius: "8px",
+    objectFit: "cover",
+    border: "1px solid #e2e8f0"
+  }
 };

@@ -1,326 +1,130 @@
-// import { useState } from "react";
-// import API from "../api/axios";
-// import { Link, useNavigate } from "react-router-dom";
-
-// function Login() {  
-//   const navigate = useNavigate();
-
-//   const [email, setEmail] = useState("");
-//   const [password, setPassword] = useState("");
-
-//   const login = async () => {
-//   try {
-//     const res = await API.post("login/", { email, password });
-
-//     // 🔥 STORE CONSISTENTLY
-//     localStorage.setItem("access", res.data.access);
-//     localStorage.setItem("refresh", res.data.refresh);
-//     localStorage.setItem("user", JSON.stringify(res.data.user));
-
-//     alert("Login successful");
-
-//     navigate("/dashboard");
-
-//   } catch (err) {
-//     alert(err.response?.data?.error || "Login failed");
-//   }
-// };
-
-//   return (
-//     <div style={styles.page}>
-//       <div style={styles.card}>
-//         <h2 style={styles.title}>Login</h2>
-
-//         <input
-//           style={styles.input}
-//           type="email"
-//           placeholder="Enter Email"
-//           onChange={(e) => setEmail(e.target.value)}
-//         />
-
-//         <input
-//           style={styles.input}
-//           type="password"
-//           placeholder="Enter Password"
-//           onChange={(e) => setPassword(e.target.value)}
-//         />
-
-//         <button style={styles.button} onClick={login}>
-//           Login
-//         </button>
-
-//         <p style={styles.text}>
-//           Don't have an account?{" "}
-//           <Link to="/register" style={styles.link}>
-//             Register
-//           </Link>
-//         </p>
-//       </div>
-//     </div>
-//   );
-// }
-
-
-
-//   export default Login;
-
-//   const styles = {
-//     page: {
-//       height: "100vh",
-//       display: "flex",
-//       justifyContent: "center",
-//       alignItems: "center",
-//       background: "linear-gradient(to right, #1e3c72, #2a5298)",
-//     },
-
-//     card: {
-//       background: "white",
-//       padding: "30px",
-//       borderRadius: "10px",
-//       width: "300px",
-//       display: "flex",
-//       flexDirection: "column",
-//       gap: "15px",
-//       boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
-//     },
-
-//     title: {
-//       textAlign: "center",
-//       marginBottom: "10px",
-//     },
-
-//     input: {
-//       padding: "10px",
-//       borderRadius: "5px",
-//       border: "1px solid #ccc",
-//       fontSize: "14px",
-//     },
-
-//     button: {
-//       padding: "10px",
-//       border: "none",
-//       borderRadius: "5px",
-//       background: "#2a5298",
-//       color: "white",
-//       fontSize: "16px",
-//       cursor: "pointer",
-//     },
-
-//     text: {
-//       fontSize: "14px",
-//       textAlign: "center",
-//     },
-
-//     link: {
-//       color: "#2a5298",
-//       textDecoration: "none",
-//       fontWeight: "bold",
-//     },
-//   };
-
-
-import { useState } from "react";
+import { useState, useRef } from "react";
 import API from "../../api/axios";
 import { Link, useNavigate } from "react-router-dom";
+import "../../index.css";
 
 function Login() {
-
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
-
   const [password, setPassword] = useState("");
-
   const [error, setError] = useState("");
 
-  // 🔥 loading + cooldown
   const [loading, setLoading] = useState(false);
-
   const [cooldown, setCooldown] = useState(0);
 
+  // prevents StrictMode double call
+  const loginLock = useRef(false);
+
   const login = async () => {
+    // BLOCK duplicate calls
+    if (loading || cooldown > 0 || loginLock.current) return;
 
-    // stop spam clicks
-    if (loading || cooldown > 0) return;
-
+    loginLock.current = true;
+    setLoading(true);
     setError("");
 
-    setLoading(true);
-
     try {
-
-      const res = await API.post(
-        "login/",
-        {
-          email,
-          password
-        }
-      );
+      const res = await API.post("login/", {
+        email,
+        password,
+      });
 
       // store auth
-      localStorage.setItem(
-        "access",
-        res.data.access
-      );
+      localStorage.setItem("access", res.data.access);
+      localStorage.setItem("refresh", res.data.refresh);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      localStorage.setItem(
-        "refresh",
-        res.data.refresh
-      );
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify(res.data.user)
-      );
-
-      // cooldown
+      // cooldown timer
       setCooldown(6);
-
       const timer = setInterval(() => {
-
         setCooldown((prev) => {
-
           if (prev <= 1) {
-
             clearInterval(timer);
-
             return 0;
           }
-
           return prev - 1;
         });
-
       }, 1000);
 
-      alert("Login successful");
-
-      // navigate("/dashboard");
+      // navigate safely
       if (res.data.user.is_admin) {
-
-  navigate("/admin-dashboard");
-
-} else {
-
-  navigate("/dashboard");
-}
-
+        navigate("/admin-dashboard", { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
     } catch (err) {
-
-      setError(
-        err.response?.data?.error
-        || "Login failed"
-      );
-
+      setError(err.response?.data?.error || "Login failed");
     } finally {
-
       setLoading(false);
+      loginLock.current = false;
     }
   };
 
   return (
-
     <div style={styles.page}>
+      
+      {/* Background elements */}
+      <div style={styles.orb1}></div>
+      <div style={styles.orb2}></div>
 
-      <div style={styles.card}>
+      <div className="glass animate-fade-up delay-100" style={styles.card}>
+        <div style={styles.header}>
+          <h2 style={styles.title}>Welcome Back</h2>
+          <p style={styles.subtitle}>Sign in to your account</p>
+        </div>
 
-        <h2 style={styles.title}>
-          Login
-        </h2>
+        <div style={styles.form}>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Email Address</label>
+            <input
+              style={styles.input}
+              type="email"
+              placeholder="name@example.com"
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
 
-        {/* EMAIL */}
-        <input
-          style={styles.input}
-          type="email"
-          placeholder="Enter Email"
-          onChange={(e) =>
-            setEmail(e.target.value)
-          }
-        />
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Password</label>
+            <input
+              style={styles.input}
+              type="password"
+              placeholder="••••••••"
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
 
-        {/* PASSWORD */}
-        <input
-          style={styles.input}
-          type="password"
-          placeholder="Enter Password"
-          onChange={(e) =>
-            setPassword(e.target.value)
-          }
-        />
+          {error && <p style={styles.error}>{error}</p>}
 
-        {/* ERROR */}
-        {error && (
-          <p style={styles.error}>
-            {error}
+          <button
+            className="hover-lift"
+            onClick={login}
+            disabled={loading || cooldown > 0}
+            style={{
+              ...styles.button,
+              opacity: loading || cooldown > 0 ? 0.7 : 1,
+              cursor: loading || cooldown > 0 ? "not-allowed" : "pointer",
+            }}
+          >
+            {loading ? "Logging in..." : cooldown > 0 ? `Wait ${cooldown}s` : "Sign In"}
+          </button>
+        </div>
+
+        <div style={styles.footer}>
+          <p style={styles.text}>
+            Don't have an account?{" "}
+            <Link to="/register" style={styles.link}>
+              Register here
+            </Link>
           </p>
-        )}
-
-        {/* BUTTON */}
-        <button
-
-          onClick={login}
-
-          disabled={loading || cooldown > 0}
-
-          style={{
-            ...styles.button,
-
-            opacity:
-              loading || cooldown > 0
-                ? 0.7
-                : 1,
-
-            cursor:
-              loading || cooldown > 0
-                ? "not-allowed"
-                : "pointer",
-
-            transform:
-              loading
-                ? "scale(0.97)"
-                : "scale(1)",
-          }}
-        >
-
-          {
-            loading
-              ? "Logging in..."
-
-              : cooldown > 0
-              ? `Wait ${cooldown}s`
-
-              : "Login"
-          }
-
-        </button>
-
-        {/* REGISTER */}
-        <p style={styles.text}>
-
-          Don't have an account?{" "}
-
-          <Link
-            to="/register"
-            style={styles.link}
-          >
-            Register
-          </Link>
-
-        </p>
-        <p style={styles.text}>
-
-          Forgot your password?{" "}
-
-          <Link
-            to="/forgot-password"
-            style={styles.link}
-          >
-            Forgot
-          </Link>
-
-        </p>
-
+          <p style={styles.text}>
+            <Link to="/forgot-password" style={styles.link}>
+              Forgot your password?
+            </Link>
+          </p>
+        </div>
       </div>
-
     </div>
   );
 }
@@ -328,64 +132,136 @@ function Login() {
 export default Login;
 
 const styles = {
-
   page: {
     height: "100vh",
+    width: "100vw",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    background:
-      "linear-gradient(to right, #1e3c72, #2a5298)",
+    background: "linear-gradient(-45deg, #0f172a, #1e293b, #0f172a, #020617)",
+    backgroundSize: "400% 400%",
+    animation: "gradientShift 15s ease infinite",
+    position: "relative",
+    overflow: "hidden",
+  },
+  
+  orb1: {
+    position: "absolute",
+    top: "10%",
+    left: "15%",
+    width: "300px",
+    height: "300px",
+    background: "radial-gradient(circle, rgba(56,189,248,0.15) 0%, rgba(0,0,0,0) 70%)",
+    borderRadius: "50%",
+    animation: "float 6s ease-in-out infinite"
+  },
+  
+  orb2: {
+    position: "absolute",
+    bottom: "10%",
+    right: "15%",
+    width: "400px",
+    height: "400px",
+    background: "radial-gradient(circle, rgba(16,185,129,0.1) 0%, rgba(0,0,0,0) 70%)",
+    borderRadius: "50%",
+    animation: "floatReverse 8s ease-in-out infinite"
   },
 
   card: {
-    background: "white",
-    padding: "30px",
-    borderRadius: "10px",
-    width: "300px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "15px",
-    boxShadow:
-      "0 4px 10px rgba(0,0,0,0.2)",
+    padding: "40px",
+    borderRadius: "24px",
+    width: "100%",
+    maxWidth: "420px",
+    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+    zIndex: 10,
+    color: "white",
+  },
+
+  header: {
+    textAlign: "center",
+    marginBottom: "30px",
   },
 
   title: {
-    textAlign: "center",
-    marginBottom: "10px",
+    fontSize: "28px",
+    fontWeight: "700",
+    marginBottom: "8px",
+    letterSpacing: "-0.5px"
+  },
+
+  subtitle: {
+    fontSize: "15px",
+    color: "#94a3b8",
+  },
+
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px",
+  },
+
+  inputGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  },
+
+  label: {
+    fontSize: "14px",
+    fontWeight: "500",
+    color: "#e2e8f0",
   },
 
   input: {
-    padding: "10px",
-    borderRadius: "5px",
-    border: "1px solid #ccc",
-    fontSize: "14px",
+    padding: "14px 16px",
+    borderRadius: "12px",
+    border: "1px solid rgba(255, 255, 255, 0.2)",
+    background: "rgba(15, 23, 42, 0.6)",
+    color: "white",
+    fontSize: "15px",
+    outline: "none",
+    transition: "all 0.2s ease",
   },
 
   error: {
-    color: "red",
-    textAlign: "center",
+    color: "#ef4444",
     fontSize: "14px",
+    background: "rgba(239, 68, 68, 0.1)",
+    padding: "10px",
+    borderRadius: "8px",
+    textAlign: "center",
+    border: "1px solid rgba(239, 68, 68, 0.2)"
   },
 
   button: {
-    padding: "10px",
+    padding: "14px",
+    background: "linear-gradient(to right, #38bdf8, #0ea5e9)",
     border: "none",
-    borderRadius: "5px",
-    background: "#2a5298",
+    borderRadius: "12px",
     color: "white",
     fontSize: "16px",
-    transition: "0.2s",
+    fontWeight: "600",
+    marginTop: "10px",
+    boxShadow: "0 4px 14px rgba(56, 189, 248, 0.4)",
+  },
+
+  footer: {
+    marginTop: "30px",
+    textAlign: "center",
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
   },
 
   text: {
+    color: "#94a3b8",
     fontSize: "14px",
-    textAlign: "center",
   },
 
   link: {
-    color: "#2a5298",
+    color: "#38bdf8",
     textDecoration: "none",
-    fontWeight: "bold",
+    fontWeight: "500",
+    transition: "color 0.2s ease"
   },
 };

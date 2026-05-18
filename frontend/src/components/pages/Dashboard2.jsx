@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-// import API from "../api/axios";
 import API from "../../api/axios";
+import "../../index.css";
 
 function Dashboard() {
-
   const [data, setData] = useState(null);
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -22,70 +21,72 @@ function Dashboard() {
 
   return (
     <div style={styles.layout}>
-
       {/* SIDEBAR */}
       <div style={styles.sidebar}>
-
         <div style={styles.profileBox}>
-
           {user?.profile ? (
-            <img src={user.profile} style={styles.avatarImg} />
+            <img src={user.profile} style={styles.avatarImg} alt="Profile" />
           ) : (
             <div style={styles.avatar}>
               {user?.first_name?.charAt(0)}
             </div>
           )}
-
-          <h3 style={{ marginTop: "10px" }}>
+          <h3 style={styles.userName}>
             {user?.first_name} {user?.last_name}
           </h3>
-
-          <p style={{ fontSize: "12px", color: "#cbd5e1" }}>
+          <p style={styles.userEmail}>
             {user?.email}
           </p>
         </div>
 
         <div style={styles.menu}>
-          <p>📊 Dashboard</p>
-          <p>👤 Profile</p>
-          <p>📢 Notifications</p>
-          <p>⚙ Settings</p>
+          <div className="hover-lift" style={styles.menuItem}>📊 Dashboard</div>
+          <div className="hover-lift" style={styles.menuItem}>👤 Profile</div>
+          <div className="hover-lift" style={styles.menuItem}>📢 Notifications</div>
+          <div className="hover-lift" style={styles.menuItem}>⚙ Settings</div>
         </div>
-
       </div>
 
       {/* MAIN */}
       <div style={styles.main}>
-
-        <div style={styles.topbar}>
-          <h2>Student Dashboard</h2>
+        <div className="animate-fade-up" style={styles.topbar}>
+          <h2 style={{margin: 0, color: "#1e293b", fontSize: "24px"}}>Student Dashboard</h2>
         </div>
 
-        <div style={styles.infoCard}>
-          <p><strong>Course:</strong> {user?.course}</p>
-          <p><strong>Reg No:</strong> {user?.reg_no}</p>
-          <p><strong>UUCMS:</strong> {user?.uucms_no}</p>
+        <div className="animate-fade-up delay-100 glass-dark" style={{...styles.infoCard, color: "white"}}>
+          <div style={styles.infoItem}>
+            <span style={styles.infoLabel}>Course</span>
+            <span style={styles.infoValue}>{user?.course || "N/A"}</span>
+          </div>
+          <div style={styles.infoItem}>
+            <span style={styles.infoLabel}>Reg No</span>
+            <span style={styles.infoValue}>{user?.reg_no || "N/A"}</span>
+          </div>
+          <div style={styles.infoItem}>
+            <span style={styles.infoLabel}>UUCMS</span>
+            <span style={styles.infoValue}>{user?.uucms_no || "N/A"}</span>
+          </div>
         </div>
 
         <div style={styles.grid}>
-
-          <div style={styles.card}>
-            <h3>🟢 Status</h3>
-            <p>Active</p>
+          <div className="hover-lift animate-fade-up delay-200" style={styles.card}>
+            <div style={styles.cardIcon}>🟢</div>
+            <h3 style={styles.cardTitle}>Status</h3>
+            <p style={styles.cardValue}>Active</p>
           </div>
 
-          <div style={styles.card}>
-            <h3>🔔 Alerts</h3>
-            <p>{data?.alerts ?? 0}</p>
+          <div className="hover-lift animate-fade-up delay-300" style={styles.card}>
+            <div style={styles.cardIcon}>🔔</div>
+            <h3 style={styles.cardTitle}>Alerts</h3>
+            <p style={styles.cardValue}>{data?.alerts ?? 0}</p>
           </div>
 
-          <div style={styles.card}>
-            <h3>📢 Message</h3>
-            <p>{data?.message ?? "Welcome"}</p>
+          <div className="hover-lift animate-fade-up delay-400" style={styles.card}>
+            <div style={styles.cardIcon}>📢</div>
+            <h3 style={styles.cardTitle}>Message</h3>
+            <p style={{...styles.cardValue, fontSize: "16px"}}>{data?.message ?? "Welcome to the portal"}</p>
           </div>
-
         </div>
-
       </div>
     </div>
   );
@@ -93,291 +94,165 @@ function Dashboard() {
 
 export default Dashboard;
 
-
 const styles = {
-
   layout: {
     display: "flex",
     minHeight: "100vh",
-    fontFamily: "Segoe UI",
-    background: "#f1f5f9",
-    animation: "fadeIn 0.6s ease-in",
+    background: "#f8fafc",
   },
 
   /* SIDEBAR */
   sidebar: {
-    width: "260px",
-    background: "linear-gradient(180deg, #0f172a, #1e3c72)",
+    width: "280px",
+    background: "linear-gradient(180deg, #0f172a, #1e293b)",
     color: "white",
-    padding: "20px",
-    animation: "slideIn 0.6s ease-out",
+    padding: "30px 20px",
+    boxShadow: "4px 0 15px rgba(0,0,0,0.1)",
+    zIndex: 10,
   },
 
   profileBox: {
     textAlign: "center",
-    paddingBottom: "20px",
-    borderBottom: "1px solid rgba(255,255,255,0.15)",
+    paddingBottom: "30px",
+    borderBottom: "1px solid rgba(255,255,255,0.1)",
+    marginBottom: "20px"
   },
 
   avatar: {
-    width: "75px",
-    height: "75px",
+    width: "80px",
+    height: "80px",
     borderRadius: "50%",
-    background: "white",
-    color: "#1e3c72",
+    background: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
+    color: "white",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    fontSize: "28px",
+    fontSize: "32px",
     fontWeight: "bold",
-    margin: "0 auto",
-    boxShadow: "0 0 15px rgba(255,255,255,0.3)",
-    animation: "pulse 2s infinite",
+    margin: "0 auto 15px",
+    boxShadow: "0 0 20px rgba(56,189,248,0.4)",
   },
 
   avatarImg: {
-    width: "75px",
-    height: "75px",
+    width: "80px",
+    height: "80px",
     borderRadius: "50%",
     objectFit: "cover",
-    border: "2px solid white",
+    border: "3px solid #38bdf8",
+    margin: "0 auto 15px",
+    boxShadow: "0 0 20px rgba(56,189,248,0.4)",
+  },
+
+  userName: {
+    margin: "0 0 5px 0",
+    fontSize: "18px",
+    fontWeight: "600",
+    letterSpacing: "-0.3px"
+  },
+
+  userEmail: {
+    margin: 0,
+    fontSize: "13px",
+    color: "#94a3b8"
   },
 
   menu: {
-    marginTop: "20px",
-    lineHeight: "2.8",
-    fontSize: "14px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px"
+  },
+
+  menuItem: {
+    padding: "12px 15px",
+    borderRadius: "10px",
     cursor: "pointer",
+    color: "#cbd5e1",
+    fontSize: "15px",
+    fontWeight: "500",
+    background: "rgba(255,255,255,0.03)",
+    transition: "all 0.2s"
   },
 
   /* MAIN */
   main: {
     flex: 1,
-    padding: "25px",
-    animation: "fadeIn 0.8s ease-in",
+    padding: "40px",
+    overflowY: "auto"
   },
 
   topbar: {
     background: "white",
-    padding: "15px 20px",
-    borderRadius: "14px",
-    marginBottom: "20px",
-    boxShadow: "0 6px 15px rgba(0,0,0,0.05)",
+    padding: "20px 30px",
+    borderRadius: "16px",
+    marginBottom: "30px",
+    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
   },
 
   infoCard: {
-    background: "white",
-    padding: "15px 20px",
-    borderRadius: "14px",
-    marginBottom: "20px",
-    boxShadow: "0 6px 15px rgba(0,0,0,0.05)",
+    padding: "25px 30px",
+    borderRadius: "16px",
+    marginBottom: "30px",
     display: "flex",
     justifyContent: "space-between",
     flexWrap: "wrap",
+    gap: "20px"
+  },
+
+  infoItem: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "5px"
+  },
+
+  infoLabel: {
+    fontSize: "13px",
+    color: "#94a3b8",
+    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px"
+  },
+
+  infoValue: {
+    fontSize: "18px",
+    fontWeight: "600",
+    color: "#f8fafc"
   },
 
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "20px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+    gap: "25px",
   },
 
   card: {
     background: "white",
-    padding: "22px",
+    padding: "30px 25px",
     borderRadius: "16px",
     textAlign: "center",
-    boxShadow: "0 10px 25px rgba(0,0,0,0.06)",
-    transition: "all 0.3s ease",
+    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05)",
     cursor: "pointer",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "10px"
   },
+
+  cardIcon: {
+    fontSize: "32px",
+    marginBottom: "10px"
+  },
+
+  cardTitle: {
+    margin: 0,
+    fontSize: "16px",
+    color: "#64748b",
+    fontWeight: "500"
+  },
+
+  cardValue: {
+    margin: 0,
+    fontSize: "28px",
+    fontWeight: "700",
+    color: "#0f172a"
+  }
 };
-
-/* Add animations globally */
-const styleSheet = document.styleSheets[0];
-styleSheet.insertRule(`
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-`, styleSheet.cssRules.length);
-
-styleSheet.insertRule(`
-@keyframes slideIn {
-  from { transform: translateX(-20px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-`, styleSheet.cssRules.length);
-
-styleSheet.insertRule(`
-@keyframes pulse {
-  0% { box-shadow: 0 0 10px rgba(255,255,255,0.3); }
-  50% { box-shadow: 0 0 20px rgba(255,255,255,0.6); }
-  100% { box-shadow: 0 0 10px rgba(255,255,255,0.3); }
-}
-`, styleSheet.cssRules.length);
-
-
-
-
-
-
-
-
-
-
-
-
-
-// import { useEffect, useState } from "react";
-// import API from "../api/axios";
-
-// function Dashboard() {
-
-//   const [data, setData] = useState(null);
-//   const user = JSON.parse(localStorage.getItem("user") || "{}");
-
-//   useEffect(() => {
-//     fetchDashboard();
-//   }, []);
-
-//   const fetchDashboard = async () => {
-//     try {
-//       const res = await API.get("dashboard/");
-//       setData(res.data);
-//     } catch (err) {
-//       console.log(err);
-//     }
-//   };
-
-//   return (
-//     <div style={styles.page}>
-
-//       {/* HEADER */}
-//       <div style={styles.header}>
-//         <h2>📊 Student Dashboard</h2>
-//       </div>
-
-//       {/* PROFILE CARD */}
-//       <div style={styles.profileCard}>
-
-//         {/* PROFILE IMAGE / INITIAL */}
-//         {user?.profile ? (
-//           <img
-//             src={user.profile}
-//             alt="profile"
-//             style={styles.profileImage}
-//           />
-//         ) : (
-//           <div style={styles.avatar}>
-//             {user?.first_name?.charAt(0)}
-//           </div>
-//         )}
-
-//         <h3>
-//           {user?.first_name} {user?.last_name}
-//         </h3>
-
-//         <p>{user?.email}</p>
-
-//         <div style={styles.info}>
-//           <p><strong>Course:</strong> {user?.course}</p>
-//           <p><strong>Reg No:</strong> {user?.reg_no}</p>
-//           <p><strong>UUCMS:</strong> {user?.uucms_no}</p>
-//         </div>
-//       </div>
-
-//       {/* STATS */}
-//       <div style={styles.grid}>
-
-//         <div style={styles.card}>
-//           <h3>🟢 Status</h3>
-//           <p>Active</p>
-//         </div>
-
-//         <div style={styles.card}>
-//           <h3>🔔 Alerts</h3>
-//           <p>{data?.alerts ?? 0}</p>
-//         </div>
-
-//         <div style={styles.card}>
-//           <h3>📢 Message</h3>
-//           <p>{data?.message ?? "Welcome"}</p>
-//         </div>
-
-//       </div>
-//     </div>
-//   );
-// }
-
-// export default Dashboard;
-
-// /* ================= STYLES ================= */
-
-// const styles = {
-
-//   page: {
-//     minHeight: "100vh",
-//     background: "#f4f7fb",
-//     padding: "20px",
-//     fontFamily: "Arial",
-//   },
-
-//   header: {
-//     textAlign: "center",
-//     marginBottom: "25px",
-//     color: "#1e3c72",
-//   },
-
-//   profileCard: {
-//     background: "white",
-//     padding: "25px",
-//     borderRadius: "12px",
-//     maxWidth: "400px",
-//     margin: "0 auto 30px",
-//     textAlign: "center",
-//     boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-//   },
-
-//   profileImage: {
-//     width: "80px",
-//     height: "80px",
-//     borderRadius: "50%",
-//     objectFit: "cover",
-//     border: "3px solid #2a5298",
-//     margin: "0 auto 15px",
-//     display: "block",
-//   },
-
-//   avatar: {
-//     width: "80px",
-//     height: "80px",
-//     borderRadius: "50%",
-//     background: "#2a5298",
-//     color: "white",
-//     display: "flex",
-//     justifyContent: "center",
-//     alignItems: "center",
-//     fontSize: "28px",
-//     margin: "0 auto 15px",
-//   },
-
-//   info: {
-//     marginTop: "15px",
-//     textAlign: "left",
-//   },
-
-//   grid: {
-//     display: "grid",
-//     gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-//     gap: "20px",
-//   },
-
-//   card: {
-//     background: "white",
-//     padding: "20px",
-//     borderRadius: "10px",
-//     textAlign: "center",
-//     boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-//   },
-// };

@@ -46,9 +46,18 @@ INSTALLED_APPS = [
     'corsheaders',
     'accounts',
     'dashboard',
+    'exam_attempt',
     
     'rest_framework_simplejwt'
 ]
+
+
+
+
+
+USE_TZ = True
+TIME_ZONE = "Asia/Kolkata"
+
 
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -146,11 +155,7 @@ SIMPLE_JWT = {
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
-USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
