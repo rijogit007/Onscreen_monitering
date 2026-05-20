@@ -33,12 +33,16 @@ def start_exam(request, exam_id):
 
     attempts = ExamAttempt.objects.filter(
         student=request.user,
-        exam=exam,
-        submitted=False
+        exam=exam
     )
     
     if attempts.exists():
         attempt = attempts.first()
+        if attempt.submitted:
+            return Response(
+                {"error": "You have already completed this exam."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         created = False
     else:
         attempt = ExamAttempt.objects.create(

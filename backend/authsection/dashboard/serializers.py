@@ -155,6 +155,16 @@ class CourseEmailSerializer(serializers.Serializer):
     subject = serializers.CharField()
 
     message = serializers.CharField()
+
+# ======================================
+# ALL EMAIL SERIALIZER
+# ======================================
+
+class AllEmailSerializer(serializers.Serializer):
+
+    subject = serializers.CharField()
+
+    message = serializers.CharField()
     
     
 

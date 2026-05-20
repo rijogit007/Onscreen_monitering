@@ -55,18 +55,44 @@ function AdminDashboard() {
   const [showLivePanel, setShowLivePanel] = useState(false);
 
 
+  // ======================
+  // DASHBOARD STATS STATE
+  // ======================
+  const [stats, setStats] = useState({
+    total_students: 0,
+    active_students: 0,
+    blocked_students: 0,
+    total_courses: 0,
+    active_exams: 0,
+    malpractice_today: 0,
+  });
 
-
-
+  // ======================
+  // SEARCH & PAGINATION STATES
+  // ======================
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // ======================
   // LOAD DATA
   // ======================
 
   useEffect(() => {
+    fetchStats();
     fetchCourses();
     fetchStudents();
   }, []);
+
+  const fetchStats = async () => {
+    try {
+      const res = await API.get("admin-dashboard/");
+      if (res.data && !res.data.error) setStats(res.data);
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
   // ======================
   // LIVE ALERTS POLLING
@@ -76,15 +102,15 @@ function AdminDashboard() {
       setShowLivePanel(false);
       return;
     }
-    
+
     setShowLivePanel(true);
-    
+
     // Initial fetch
     const fetchLive = async () => {
       try {
         const res = await API.get("recent-malpractice/");
         if (res.data) setLiveReports(res.data);
-      } catch(err) {}
+      } catch (err) { }
     };
     fetchLive();
 
@@ -516,6 +542,36 @@ ${student.is_active
     }
   };
 
+  // ======================
+  // FILTERING & PAGINATION LOGIC
+  // ======================
+  const filteredStudents = students.filter(student => {
+    const matchesSearch = (
+      (student.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (student.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (student.reg_no || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (student.uucms_no || "").toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    const matchesStatus = 
+      statusFilter === "All" ? true :
+      statusFilter === "Active" ? student.is_active :
+      statusFilter === "Blocked" ? !student.is_active : true;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedStudents = filteredStudents.slice(startIndex, startIndex + itemsPerPage);
+
+  // Auto-reset page if filter results are fewer than current page allows
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [filteredStudents.length, currentPage, totalPages]);
+
+
   return (
 
     <div style={styles.page}>
@@ -557,6 +613,38 @@ ${student.is_active
       {/* MAIN */}
 
       <div style={styles.main}>
+
+        {/* DASHBOARD STATS CARDS */}
+        <div style={styles.statsGrid}>
+          <div style={styles.statCard}>
+            <div style={styles.statIcon}>👥</div>
+            <div>
+              <p style={styles.statTitle}>Total Students</p>
+              <h3 style={styles.statValue}>{stats.total_students}</h3>
+            </div>
+          </div>
+          <div style={styles.statCard}>
+            <div style={styles.statIcon}>📚</div>
+            <div>
+              <p style={styles.statTitle}>Total Courses</p>
+              <h3 style={styles.statValue}>{stats.total_courses}</h3>
+            </div>
+          </div>
+          <div style={styles.statCard}>
+            <div style={styles.statIcon}>📝</div>
+            <div>
+              <p style={styles.statTitle}>Active Exams</p>
+              <h3 style={styles.statValue}>{stats.active_exams}</h3>
+            </div>
+          </div>
+          <div style={{...styles.statCard, borderLeft: "4px solid #ef4444"}}>
+            <div style={{...styles.statIcon, background: "rgba(239, 68, 68, 0.2)", color: "#ef4444"}}>⚠️</div>
+            <div>
+              <p style={styles.statTitle}>Alerts Today</p>
+              <h3 style={{...styles.statValue, color: stats.malpractice_today > 0 ? "#ef4444" : "white"}}>{stats.malpractice_today}</h3>
+            </div>
+          </div>
+        </div>
 
         {/* ADD COURSE */}
 
@@ -753,7 +841,7 @@ ${student.is_active
               </h3>
               <button onClick={() => setShowLivePanel(false)} style={styles.closeLiveBtn}>✕</button>
             </div>
-            
+
             <div style={styles.liveReportsContainer}>
               {liveReports.length === 0 ? (
                 <p style={{ textAlign: "center", color: "#64748b", marginTop: "20px" }}>No recent malpractice reports.</p>
@@ -776,6 +864,25 @@ ${student.is_active
           </div>
         )}
 
+
+        {/* TABLE CONTROLS */}
+        <div style={styles.tableControls}>
+          <input
+            style={{...styles.input, flex: 1, minWidth: "250px"}}
+            placeholder="Search by Name, Email, Reg No, UUCMS..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <select 
+            style={styles.select}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="All">All Statuses</option>
+            <option value="Active">Active</option>
+            <option value="Blocked">Blocked</option>
+          </select>
+        </div>
 
         {/* TABLE */}
 
@@ -825,7 +932,7 @@ ${student.is_active
 
             <tbody>
 
-              {students.map(
+              {paginatedStudents.map(
                 (student) => (
 
                   <tr
@@ -1047,6 +1154,27 @@ ${student.is_active
           </table>
 
         </div>
+
+        {/* PAGINATION */}
+        {totalPages > 1 && (
+          <div style={styles.pagination}>
+            <button 
+              style={styles.pageBtn} 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            >
+              Previous
+            </button>
+            <span style={{color: "white", fontWeight: "600"}}>Page {currentPage} of {totalPages}</span>
+            <button 
+              style={styles.pageBtn} 
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            >
+              Next
+            </button>
+          </div>
+        )}
 
         {/* EDIT MODAL */}
 
@@ -1281,88 +1409,115 @@ export default AdminDashboard;
 // ======================
 
 const styles = {
-
   page: {
     display: "flex",
     minHeight: "100vh",
-    background: "#f1f5f9",
-    fontFamily: "Segoe UI",
+    background:
+      "linear-gradient(135deg,#020617,#0f172a,#111827)",
+    color: "white",
+    fontFamily: "Inter, sans-serif",
   },
 
   sidebar: {
-    width: "260px",
+    width: "280px",
     background:
-      "linear-gradient(180deg,#0f172a,#1e3c72)",
-    color: "white",
-    padding: "20px",
+      "rgba(15,23,42,0.85)",
+    backdropFilter: "blur(18px)",
+    borderRight:
+      "1px solid rgba(255,255,255,0.08)",
+    padding: "25px",
     display: "flex",
     flexDirection: "column",
-    gap: "10px",
+    gap: "14px",
+    position: "sticky",
+    top: 0,
+    height: "100vh",
+    boxSizing: "border-box",
   },
 
   logo: {
-    marginBottom: "10px",
+    fontSize: "32px",
+    fontWeight: "900",
+    marginBottom: "20px",
+    background:
+      "linear-gradient(to right,#38bdf8,#818cf8)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor:
+      "transparent",
   },
 
   menuBtn: {
-    padding: "12px",
-    border: "none",
-    borderRadius: "8px",
-    background: "#1e293b",
-    color: "white",
+    padding: "14px 18px",
+    border:
+      "1px solid rgba(255,255,255,0.05)",
+    borderRadius: "14px",
+    background:
+      "rgba(255,255,255,0.04)",
+    color: "#e2e8f0",
     cursor: "pointer",
     textAlign: "left",
     fontWeight: "600",
+    transition: "0.3s",
   },
 
   main: {
     flex: 1,
-    padding: "20px",
+    padding: "30px",
   },
 
   card: {
-    background: "white",
-    padding: "20px",
-    borderRadius: "14px",
-    marginBottom: "20px",
-    boxShadow:
-      "0 6px 20px rgba(0,0,0,0.06)",
+    background:
+      "rgba(255,255,255,0.05)",
+    backdropFilter: "blur(14px)",
+    border:
+      "1px solid rgba(255,255,255,0.08)",
+    padding: "25px",
+    borderRadius: "24px",
+    marginBottom: "25px",
   },
 
   row: {
     display: "flex",
-    gap: "10px",
+    gap: "12px",
+    flexWrap: "wrap",
   },
 
   input: {
     flex: 1,
-    padding: "12px",
+    padding: "14px",
+    borderRadius: "12px",
     border:
-      "1px solid #d1d5db",
-    borderRadius: "8px",
-    marginBottom: "10px",
+      "1px solid rgba(255,255,255,0.08)",
+    background:
+      "rgba(255,255,255,0.05)",
+    color: "white",
     outline: "none",
   },
 
   textarea: {
     width: "100%",
     minHeight: "130px",
-    padding: "12px",
-    borderRadius: "8px",
+    padding: "14px",
+    borderRadius: "12px",
     border:
-      "1px solid #d1d5db",
+      "1px solid rgba(255,255,255,0.08)",
+    background:
+      "rgba(255,255,255,0.05)",
+    color: "white",
     resize: "none",
     outline: "none",
+    marginTop: "12px",
   },
 
   addBtn: {
-    padding: "12px 20px",
+    padding: "14px 24px",
     border: "none",
-    borderRadius: "8px",
-    background: "#2563eb",
+    borderRadius: "12px",
+    background:
+      "linear-gradient(to right,#2563eb,#3b82f6)",
     color: "white",
+    fontWeight: "700",
     cursor: "pointer",
-    fontWeight: "600",
   },
 
   emailActions: {
@@ -1375,35 +1530,39 @@ const styles = {
   sendAllBtn: {
     padding: "10px 16px",
     border: "none",
-    borderRadius: "8px",
+    borderRadius: "10px",
+    background:
+      "linear-gradient(to right,#dc2626,#ef4444)",
     color: "white",
     cursor: "pointer",
-    transition: "0.3s",
-    fontWeight: "600",
+    fontWeight: "700",
   },
 
   courseEmailBtn: {
     padding: "10px 16px",
     border: "none",
-    borderRadius: "8px",
+    borderRadius: "10px",
+    background:
+      "linear-gradient(to right,#2563eb,#3b82f6)",
     color: "white",
     cursor: "pointer",
-    transition: "0.3s",
-    fontWeight: "600",
+    fontWeight: "700",
   },
 
   title: {
+    fontSize: "36px",
+    fontWeight: "900",
     marginBottom: "10px",
-    color: "#0f172a",
+    color: "white",
   },
 
   tableCard: {
-    background: "white",
-    padding: "15px",
-    borderRadius: "14px",
+    background:
+      "rgba(255,255,255,0.04)",
+    borderRadius: "24px",
     overflowX: "auto",
-    boxShadow:
-      "0 6px 20px rgba(0,0,0,0.06)",
+    border:
+      "1px solid rgba(255,255,255,0.08)",
   },
 
   table: {
@@ -1412,75 +1571,80 @@ const styles = {
   },
 
   th: {
-    border:
-      "1px solid #e5e7eb",
-    padding: "14px",
-    background: "#f8fafc",
-    fontWeight: "700",
+    padding: "18px",
+    background:
+      "rgba(255,255,255,0.03)",
+    color: "#94a3b8",
+    textTransform: "uppercase",
   },
 
   td: {
-    border:
-      "1px solid #e5e7eb",
-    padding: "12px",
+    padding: "18px",
+    borderBottom:
+      "1px solid rgba(255,255,255,0.05)",
+    color: "white",
   },
 
   profileImg: {
-    width: "45px",
-    height: "45px",
+    width: "50px",
+    height: "50px",
     borderRadius: "50%",
     objectFit: "cover",
-    border:
-      "2px solid #2563eb",
+    border: "2px solid #38bdf8",
   },
 
   actionBox: {
     display: "flex",
-    gap: "6px",
+    gap: "8px",
     flexWrap: "wrap",
   },
 
   viewBtn: {
-    padding: "7px 12px",
+    padding: "8px 14px",
     border: "none",
-    borderRadius: "6px",
-    background: "#2563eb",
+    borderRadius: "10px",
+    background:
+      "linear-gradient(to right,#2563eb,#3b82f6)",
     color: "white",
     cursor: "pointer",
   },
 
   editBtn: {
-    padding: "7px 12px",
+    padding: "8px 14px",
     border: "none",
-    borderRadius: "6px",
-    background: "#16a34a",
+    borderRadius: "10px",
+    background:
+      "linear-gradient(to right,#10b981,#22c55e)",
     color: "white",
     cursor: "pointer",
   },
 
   blockBtn: {
-    padding: "7px 12px",
+    padding: "8px 14px",
     border: "none",
-    borderRadius: "6px",
-    background: "#f59e0b",
+    borderRadius: "10px",
+    background:
+      "linear-gradient(to right,#f59e0b,#f97316)",
     color: "white",
     cursor: "pointer",
   },
 
   emailBtn: {
-    padding: "7px 12px",
+    padding: "8px 14px",
     border: "none",
-    borderRadius: "6px",
+    borderRadius: "10px",
+    background:
+      "linear-gradient(to right,#7c3aed,#8b5cf6)",
     color: "white",
     cursor: "pointer",
-    transition: "0.3s",
   },
 
   deleteBtn: {
-    padding: "7px 12px",
+    padding: "8px 14px",
     border: "none",
-    borderRadius: "6px",
-    background: "#dc2626",
+    borderRadius: "10px",
+    background:
+      "linear-gradient(to right,#dc2626,#ef4444)",
     color: "white",
     cursor: "pointer",
   },
@@ -1492,7 +1656,8 @@ const styles = {
     width: "100%",
     height: "100%",
     background:
-      "rgba(0,0,0,0.45)",
+      "rgba(0,0,0,0.7)",
+    backdropFilter: "blur(6px)",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
@@ -1501,12 +1666,16 @@ const styles = {
 
   modal: {
     width: "420px",
-    background: "white",
+    background:
+      "rgba(15,23,42,0.95)",
+    border:
+      "1px solid rgba(255,255,255,0.08)",
     padding: "25px",
-    borderRadius: "14px",
+    borderRadius: "24px",
     display: "flex",
     flexDirection: "column",
-    gap: "10px",
+    gap: "12px",
+    color: "white",
   },
 
   modalBtns: {
@@ -1519,107 +1688,194 @@ const styles = {
     flex: 1,
     padding: "12px",
     border: "none",
-    borderRadius: "8px",
-    background: "#16a34a",
+    borderRadius: "10px",
+    background:
+      "linear-gradient(to right,#10b981,#22c55e)",
     color: "white",
     cursor: "pointer",
-    fontWeight: "600",
+    fontWeight: "700",
   },
 
   cancelBtn: {
     flex: 1,
     padding: "12px",
     border: "none",
-    borderRadius: "8px",
-    background: "#dc2626",
+    borderRadius: "10px",
+    background:
+      "linear-gradient(to right,#dc2626,#ef4444)",
     color: "white",
     cursor: "pointer",
-    fontWeight: "600",
+    fontWeight: "700",
   },
 
   livePanel: {
-    background: "linear-gradient(180deg, #1e293b, #0f172a)",
-    borderRadius: "16px",
-    marginBottom: "25px",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+    background:
+      "rgba(255,255,255,0.05)",
+    borderRadius: "24px",
     overflow: "hidden",
-    border: "1px solid #334155",
-    animation: "fadeIn 0.4s ease-out",
+    marginBottom: "25px",
+    border:
+      "1px solid rgba(255,255,255,0.08)",
   },
+
   livePanelHeader: {
-    background: "#0f172a",
-    padding: "15px 20px",
+    padding: "20px",
+    borderBottom:
+      "1px solid rgba(255,255,255,0.08)",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    borderBottom: "1px solid #334155",
   },
+
   liveDot: {
     width: "12px",
     height: "12px",
-    background: "#ef4444",
     borderRadius: "50%",
+    background: "#ef4444",
     boxShadow: "0 0 10px #ef4444",
-    animation: "pulseGlow 2s infinite"
+    animation: "pulse 1.5s infinite",
   },
+
   closeLiveBtn: {
-    background: "transparent",
     border: "none",
+    background: "transparent",
     color: "#94a3b8",
-    fontSize: "18px",
     cursor: "pointer",
-    transition: "color 0.2s"
+    fontSize: "18px",
   },
+
   liveReportsContainer: {
     padding: "20px",
-    maxHeight: "500px",
-    overflowY: "auto",
     display: "flex",
     flexDirection: "column",
-    gap: "15px"
-  },
-  liveReportCard: {
-    background: "#ffffff",
-    borderRadius: "12px",
-    padding: "15px",
-    display: "flex",
     gap: "15px",
-    boxShadow: "0 4px 6px rgba(0,0,0,0.05)",
-    borderLeft: "4px solid #ef4444",
-    alignItems: "center",
-    justifyContent: "space-between",
+    maxHeight: "500px",
+    overflowY: "auto",
   },
+
+  liveReportCard: {
+    background:
+      "rgba(255,255,255,0.04)",
+    borderRadius: "18px",
+    padding: "16px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderLeft: "4px solid #ef4444",
+  },
+
   liveReportInfo: {
     flex: 1,
   },
+
   liveReportTime: {
     fontSize: "12px",
-    color: "#64748b",
-    margin: "0 0 5px 0"
+    color: "#94a3b8",
+    marginBottom: "6px",
   },
+
   liveReportName: {
     margin: "0 0 5px 0",
-    color: "#0f172a",
-    fontSize: "16px",
-    fontWeight: "bold"
+    color: "white",
+    fontWeight: "700",
   },
+
   liveReportExam: {
-    margin: "0 0 8px 0",
-    color: "#3b82f6",
-    fontSize: "13px",
-    fontWeight: "500"
+    margin: "0 0 5px 0",
+    color: "#38bdf8",
   },
+
   liveReportDesc: {
-    margin: 0,
-    color: "#ef4444",
-    fontSize: "14px",
-    fontWeight: "600"
+    color: "#f87171",
+    fontWeight: "600",
   },
+
   liveReportImg: {
     width: "120px",
     height: "90px",
-    borderRadius: "8px",
     objectFit: "cover",
-    border: "1px solid #e2e8f0"
-  }
+    borderRadius: "12px",
+    border:
+      "1px solid rgba(255,255,255,0.08)",
+  },
+
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+    gap: "20px",
+    marginBottom: "25px",
+  },
+
+  statCard: {
+    background: "rgba(255,255,255,0.05)",
+    backdropFilter: "blur(14px)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    padding: "20px",
+    borderRadius: "20px",
+    display: "flex",
+    alignItems: "center",
+    gap: "15px",
+  },
+
+  statIcon: {
+    fontSize: "24px",
+    width: "50px",
+    height: "50px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "rgba(255,255,255,0.1)",
+    borderRadius: "12px",
+  },
+
+  statTitle: {
+    color: "#94a3b8",
+    fontSize: "14px",
+    margin: "0 0 5px 0",
+    fontWeight: "600",
+  },
+
+  statValue: {
+    color: "white",
+    fontSize: "24px",
+    margin: 0,
+    fontWeight: "800",
+  },
+
+  tableControls: {
+    display: "flex",
+    gap: "15px",
+    marginBottom: "15px",
+    flexWrap: "wrap",
+  },
+
+  select: {
+    padding: "14px",
+    borderRadius: "12px",
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(15,23,42,0.95)",
+    color: "white",
+    outline: "none",
+    minWidth: "150px",
+    cursor: "pointer",
+  },
+
+  pagination: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: "15px",
+    padding: "10px",
+  },
+
+  pageBtn: {
+    padding: "10px 20px",
+    border: "none",
+    borderRadius: "10px",
+    background: "linear-gradient(to right,#2563eb,#3b82f6)",
+    color: "white",
+    cursor: "pointer",
+    fontWeight: "700",
+  },
 };
+

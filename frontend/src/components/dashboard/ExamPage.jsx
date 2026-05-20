@@ -396,8 +396,14 @@ function ExamPage() {
                 marginRight: "15px",
                 cursor: canExit ? "pointer" : "not-allowed"
               }}
-              onClick={() => {
+              onClick={async () => {
                 if(canExit) {
+                  cooldownRef.current = true;
+                  try {
+                    await API.post(`submit-exam/${attempt.attempt_id}/`);
+                  } catch (err) {
+                    console.log("Submit on exit failed", err);
+                  }
                   stopCamera();
                   navigate("/dashboard", { replace: true });
                 }

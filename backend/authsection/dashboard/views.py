@@ -12,7 +12,8 @@ from rest_framework.decorators import (
 )
 
 from rest_framework.permissions import (
-    IsAuthenticated
+    IsAuthenticated,
+    AllowAny
 )
 
 from rest_framework.response import Response
@@ -31,7 +32,9 @@ from .serializers import (
 
     EmailSerializer,
 
-    CourseEmailSerializer
+    CourseEmailSerializer,
+    
+    AllEmailSerializer
 )
 
 User = get_user_model()
@@ -41,18 +44,16 @@ User = get_user_model()
 # STUDENT DASHBOARD
 # ======================================
 
+from django.utils import timezone
+from .models import Course, Exam
+from exam_attempt.models import MalpracticeLog
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-
 def admin_dashboard(request):
-
-    # admin only
     if not request.user.is_superuser:
-
         return Response({
-
             "error": "Only admin allowed"
-
         }, status=403)
 
     total_students = User.objects.filter(
@@ -70,18 +71,20 @@ def admin_dashboard(request):
     ).count()
 
     total_courses = Course.objects.count()
+    
+    active_exams = Exam.objects.filter(is_published=True).count()
+    
+    today = timezone.now().date()
+    malpractice_today = MalpracticeLog.objects.filter(timestamp__date=today).count()
 
     return Response({
-
         "admin": request.user.first_name,
-
         "total_students": total_students,
-
         "active_students": active_students,
-
         "blocked_students": blocked_students,
-
-        "total_courses": total_courses
+        "total_courses": total_courses,
+        "active_exams": active_exams,
+        "malpractice_today": malpractice_today
     })
 
 @api_view(['GET'])
@@ -110,15 +113,8 @@ def dashboard_data(request):
 # ======================================
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
-
+@permission_classes([AllowAny])
 def get_courses(request):
-    
-    if not request.user.is_superuser:
-
-        return Response({
-            "error": "Only admin allowed"
-        }, status=403)
 
     courses = Course.objects.all()
 
@@ -469,7 +465,7 @@ def send_all_emails(request):
         "error": "Only admin allowed"
     }, status=403)
 
-    serializer = CourseEmailSerializer(
+    serializer = AllEmailSerializer(
         data=request.data
     )
 
@@ -492,21 +488,16 @@ def send_all_emails(request):
             if student.email
         ]
 
-        send_mail(
-
-            subject,
-
-            message,
-
-            settings.EMAIL_HOST_USER,
-
-            emails,
-
-            fail_silently=False
-        )
+        for email in emails:
+            send_mail(
+                subject,
+                message,
+                settings.EMAIL_HOST_USER,
+                [email],
+                fail_silently=True
+            )
 
         return Response({
-
             "message": "Emails sent to all"
         })
 
@@ -556,23 +547,17 @@ def send_course_email(request):
             if student.email
         ]
 
-        send_mail(
-
-            subject,
-
-            message,
-
-            settings.EMAIL_HOST_USER,
-
-            emails,
-
-            fail_silently=False
-        )
+        for email in emails:
+            send_mail(
+                subject,
+                message,
+                settings.EMAIL_HOST_USER,
+                [email],
+                fail_silently=True
+            )
 
         return Response({
-
-            "message":
-                f"Emails sent to {course}"
+            "message": f"Emails sent to {course}"
         })
 
     return Response(

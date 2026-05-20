@@ -21,7 +21,7 @@ API.interceptors.request.use((config) => {
 API.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401 && !err.config.url.includes("login")) {
+    if (err.response?.status === 401 && !err.config.url.includes("login") && !err.config.url.includes("register")) {
       localStorage.removeItem("access");
       localStorage.removeItem("user");
       window.location.href = "/login";
