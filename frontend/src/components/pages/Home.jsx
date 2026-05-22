@@ -739,9 +739,9 @@ function Home() {
       {/* 🔥 NAVBAR */}
       <nav style={styles.navbar}>
         <h2 style={styles.logo}>
-          Onscreen
+          INVIGILA
           <span style={{ color: "#38bdf8" }}>
-            Monitor
+            _AI
           </span>
         </h2>
 
