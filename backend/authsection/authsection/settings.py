@@ -177,7 +177,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 
-EMAIL_HOST_USER = 'rijovarghese225@gmail.com' 
-EMAIL_HOST_PASSWORD = 'nnvokmfjzcatgvwk'
+EMAIL_HOST_USER = ''
+EMAIL_HOST_PASSWORD = ''
 
 AUTH_USER_MODEL = 'accounts.User'
